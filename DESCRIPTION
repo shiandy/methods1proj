@@ -1,9 +1,10 @@
 Package: methods1proj
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Methods 1 Project, Fall 2016
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Andy Shi
+Maintainer: Andy Shi <andyshi@g.harvard.edu>
+Description: Methods 1 Project, Fall 2016.
+License: MIT
 LazyData: TRUE
+Suggests: testthat

@@ -49,6 +49,7 @@ pick_fit_model <- function(xs, ys, method = c("step", "leaps"),
                            direction = "both") {
     method <- match.arg(method)
     if (method == "leaps") {
+        # direction is ignored for leaps
         if(dim(xs)[2] > 6) {
             stop("Dimensions too high for leaps")
         }
@@ -95,6 +96,9 @@ plot_sim <- function(res_df, true_betas) {
         true_val <- true_betas[i]
         beta_name <- names(true_betas)[i]
         cur_dat <- res_df[res_df$coef_name == beta_name, ]
+        if (nrow(cur_dat) == 0) {
+            next
+        }
         cur_dat <- cur_dat[order(cur_dat$pt_est),]
         cur_dat$index <- 1:nrow(cur_dat)
         coverage <- mean(cur_dat$lb < true_val & true_val < cur_dat$ub)

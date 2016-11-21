@@ -36,6 +36,11 @@ run_plot_sim <- function(nreps, n, true_betas,
     index <- seq(0, p - 1, 1)
     plot(index, coverages, ylim = c(min(coverages), 1))
     abline(h = 0.95, col = "red")
+
+    selected_df <- sim_res %>% group_by(coef_name) %>%
+            summarize(pct_selected = n() / nreps)
+    ggplot(data = selected_df, aes(x = coef_name, y = pct_selected)) +
+        geom_bar(stat = "identity")
 }
 
 # "Easy case"
@@ -43,6 +48,7 @@ true_betas1 <- c(1, 2, 0, 0.1)
 nreps <- 1000
 n1 <- 50
 par(mfrow = c(2, 2))
+
 run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
              select_method = "leaps")
 

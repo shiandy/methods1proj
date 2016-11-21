@@ -14,7 +14,8 @@ run_plot_sim <- function(nreps, n, true_betas,
     p <- length(true_betas)
     start <- Sys.time()
     sim_res <- run_sim(nreps, n, true_betas,
-                       select_method = select_method)
+                       select_method, direction, gen_dist,
+                       error_dist, ...)
     elapsed <- Sys.time() - start
     print(elapsed)
     names(true_betas) <- c("(Intercept)", paste0("V", 1:(p - 1)))
@@ -39,53 +40,59 @@ run_plot_sim <- function(nreps, n, true_betas,
 
     selected_df <- sim_res %>% group_by(coef_name) %>%
             summarize(pct_selected = n() / nreps)
-    ggplot(data = selected_df, aes(x = coef_name, y = pct_selected)) +
-        geom_bar(stat = "identity")
+    p <- ggplot(data = selected_df, aes(x = coef_name,
+                                        y = pct_selected)) +
+            geom_bar(stat = "identity")
+    print(p)
 }
 
 # "Easy case"
 true_betas1 <- c(1, 2, 0, 0.1)
 nreps <- 1000
 n1 <- 50
-par(mfrow = c(2, 2))
+#par(mfrow = c(2, 2))
+sim_types <- c("leaps", "forward", "backward", "both")
+for (m in sim_types) {
+    select_method = "leaps"
+    if (m != "leaps") {
+        select_method = "step"
+    }
+    run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
+                 select_method = select_method, direction = m)
 
-run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
-             select_method = "leaps")
+}
 
-run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
-             select_method = "step", direction = "forward")
+# try with correlation
+for (m in sim_types) {
+    select_method = "leaps"
+    if (m != "leaps") {
+        select_method = "step"
+    }
+    run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
+                 select_method = select_method, direction = m,
+                 gen_dist = gen_xs_corr, covar = 0.8)
 
-run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
-             select_method = "step", direction = "backward")
-
-run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
-             select_method = "step", direction = "both")
+}
 
 # Bigger n
 par(mfrow = c(2, 2))
 n2 <- 500
-run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
-             select_method = "leaps")
+for (m in sim_types) {
+    select_method = "leaps"
+    if (m != "leaps") {
+        select_method = "step"
+    }
+    run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
+                 select_method = select_method, direction = m)
 
-run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
-             select_method = "step", direction = "forward")
-
-run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
-             select_method = "step", direction = "backward")
-
-run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
-             select_method = "step", direction = "both")
+}
 
 # Harder case
 true_betas2 <- rep(0, 10)
 true_betas2[1] <- 1
 true_betas2[2] <- 2
-
-run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
-             select_method = "step", direction = "forward")
-
-run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
-             select_method = "step", direction = "backward")
-
-run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
-             select_method = "step", direction = "both")
+step_dir <- c("forward", "backward", "both")
+for (s in step_dir) {
+    run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
+                 select_method = "step", direction = s)
+}

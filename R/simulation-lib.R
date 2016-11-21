@@ -80,12 +80,36 @@ run_sim <- function(nreps, n, true_betas,
     ret_df <- data.frame(lb = ci_mat[, 1], ub = ci_mat[, 2],
                          coef_name = rownames(ci_mat),
                          sim_num = unlist(sim_num_lst))
+    # point estimate is midpoint
+    ret_df$pt_est <- ret_df$lb + (ret_df$ub - ret_df$lb) / 2
+    ret_df$signif <- !(ret_df$lb < 0 & 0 < ret_df$ub)
     return(ret_df)
 }
 
 
-plot_sim <- function(true_betas, beta_cis) {
-    # make a plot
+plot_sim <- function(res_df, true_betas) {
+    p <- length(true_betas)
+    plots_lst <- list()
+    coverages <- rep(NA, p)
+    for (i in 1:p) {
+        true_val <- true_betas[i]
+        beta_name <- names(true_betas)[i]
+        cur_dat <- res_df[res_df$coef_name == beta_name, ]
+        cur_dat <- cur_dat[order(cur_dat$pt_est),]
+        cur_dat$index <- 1:nrow(cur_dat)
+        coverage <- mean(cur_dat$lb < true_val & true_val < cur_dat$ub)
+        coverages[i] <- coverage
+
+        plt <- ggplot2::ggplot(data = cur_dat,
+                               ggplot2::aes(x = index, y = pt_est)) +
+            ggplot2::geom_errorbar(ggplot2::aes(ymin = lb, ymax = ub),
+                                   alpha = 0.5) +
+            ggplot2::geom_hline(yintercept = true_val, color = "red") +
+            ggplot2::ggtitle(paste(beta_name,
+                                   "Coverage: ", round(coverage, 4)))
+        plots_lst[[i]] <- plt
+    }
+    return(list(plots = plots_lst, coverages = coverages))
 }
 
 train_test_split <- function(xs, split_prop = 0.5) {

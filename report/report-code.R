@@ -1,12 +1,11 @@
-######################################################################
-## Part 1: Simulation leaps
-######################################################################
-
 library("methods1proj")
 library("dplyr")
 library("ggplot2")
 library("cowplot")
 
+set.seed(1262)
+
+# helper function to run the simulation and generate plots
 run_plot_sim <- function(nreps, n, true_betas,
                     select_method = c("step", "leaps"),
                     direction = "both",
@@ -41,31 +40,34 @@ run_plot_sim <- function(nreps, n, true_betas,
 
 # "Easy case"
 true_betas1 <- c(1, 2, 0, 0.1)
+nreps <- 1000
+n1 <- 50
 par(mfrow = c(2, 2))
-run_plot_sim(100, 50, true_betas1, plot_coefs = FALSE,
+run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
              select_method = "leaps")
 
-run_plot_sim(1000, 50, true_betas1, plot_coefs = FALSE,
+run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
              select_method = "step", direction = "forward")
 
-run_plot_sim(1000, 50, true_betas1, plot_coefs = FALSE,
+run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
              select_method = "step", direction = "backward")
 
-run_plot_sim(1000, 50, true_betas1, plot_coefs = FALSE,
+run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
              select_method = "step", direction = "both")
 
 # Bigger n
 par(mfrow = c(2, 2))
-run_plot_sim(1000, 500, true_betas1, plot_coefs = FALSE,
+n2 <- 500
+run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
              select_method = "leaps")
 
-run_plot_sim(1000, 500, true_betas1, plot_coefs = FALSE,
+run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
              select_method = "step", direction = "forward")
 
-run_plot_sim(1000, 500, true_betas1, plot_coefs = FALSE,
+run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
              select_method = "step", direction = "backward")
 
-run_plot_sim(1000, 500, true_betas1, plot_coefs = FALSE,
+run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
              select_method = "step", direction = "both")
 
 # Harder case
@@ -73,11 +75,11 @@ true_betas2 <- rep(0, 10)
 true_betas2[1] <- 1
 true_betas2[2] <- 2
 
-run_plot_sim(1000, 50, true_betas2, plot_coefs = FALSE,
+run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
              select_method = "step", direction = "forward")
 
-run_plot_sim(1000, 50, true_betas2, plot_coefs = FALSE,
+run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
              select_method = "step", direction = "backward")
 
-run_plot_sim(1000, 50, true_betas2, plot_coefs = FALSE,
+run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
              select_method = "step", direction = "both")

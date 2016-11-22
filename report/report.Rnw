@@ -1,0 +1,84 @@
+\documentclass[letterpaper, 11pt]{article}
+
+% Possible packages - uncomment to use
+\usepackage{amsmath}       % Needed for math stuff
+\usepackage{amssymb}       % Needed for some math symbols
+\usepackage{mathpazo}      % Palatino font
+\usepackage{microtype}      % Better text justification and spacing
+
+%Suggested by TeXworks
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+\usepackage{verbatim}      % lets you do verbatim text
+
+% Sets the page margins to 1 inch each side
+\usepackage[margin=1in]{geometry}
+\geometry{letterpaper}
+
+% Definitions to make our lives easier
+\def\R{{\mathbb R}}
+\def\N{{\mathbb N}}
+\def\Q{{\mathbb Q}}
+\def\P{{\mathbb P}}
+\def\E{{\mathbb E}}
+\def\F{{\mathcal F}}
+
+% Definitions from Joe
+\newcommand{\SD}{\textnormal{SD}}
+\newcommand{\var}{\textnormal{Var}}
+\newcommand{\cov}{\textrm{Cov}}
+\newcommand{\cor}{\textrm{Cor}}
+\newcommand{\Norm}{\mathcal{N}}
+
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+
+\frenchspacing
+
+% Uncomment this section if you wish to have a header.
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0.5pt} % customise the layout...
+\lhead{Andy Shi} \chead{Methods I Project} \rhead{Fall 2016}
+\lfoot{} \cfoot{\thepage} \rfoot{}
+
+\begin{document}
+\title{Methods I Project Report}
+\author{Andy Shi}
+\date{November 22, 2016}
+\maketitle
+
+<<setup, echo = FALSE>>=
+knitr::opts_chunk$set(echo = FALSE)
+@
+
+<<old, include = FALSE>>=
+coverages_df <- data.frame(coef_name = names(coverages),
+                           coverage = coverages)
+p_cover <- ggplot(data = coverages_df, aes(x = coef_name,
+                                           y = coverage)) +
+    geom_point() + ylim(min(0.949, min(coverages)), 1) +
+    geom_hline(yintercept = 0.95, color = "red") +
+    ggtitle("Coverage Probability") + xlab("Coefficient") +
+    ylab("Coverage Probability")
+#print(p_cover)
+
+selected_df <- sim_res %>% group_by(coef_name) %>%
+        summarize(pct_selected = n() / nreps)
+p_select <- ggplot(data = selected_df, aes(x = coef_name,
+                                    y = pct_selected)) +
+    geom_point() + ggtitle("Selection Probability") +
+    xlab("Coefficient") + ylab("Selection Probability")
+#print(p_select)
+@
+
+\abstract{Abstract here}
+
+\section{Introduction}
+
+\section{Methods}
+
+\section{Results}
+
+\section{Conclusion}
+
+
+\end{document}

@@ -52,13 +52,12 @@ run_sim_parallel <- function(true_betas, sim_conditions, nreps = 10) {
 
 # "Easy case"
 true_betas1 <- c(1, 2, 0, 0.1)
-ntrials <- 2
-nreps <- 10
-ns <- c(50, 100)
-#select_method <- c("leaps", "forward", "backward", "both")
-select_method <- c("leaps", "forward")
+ntrials <- 10
+nreps <- 1000
+ns <- c(50, 500)
+select_method <- c("leaps", "forward", "backward", "both")
 covar <- c(0, 0.5)
-split_prop <- c(-1, 0.5)
+split_prop <- c(-1, 0.5, 0.8)
 
 sim_conditions1 <- expand.grid(trial_index = 1:ntrials,
                               select_method = select_method,
@@ -70,12 +69,29 @@ sim_conditions1 <- expand.grid(trial_index = 1:ntrials,
 cl <- makeCluster(4)
 registerDoParallel(cl)
 
+start_time <- Sys.time()
 beta1_df <- run_sim_parallel(true_betas1, sim_conditions1, nreps)
 write.csv(beta1_df, "generated-data/beta1_df.csv")
-
-
+print(Sys.time() - start_time)
 
 # Harder case
 true_betas2 <- rep(0, 20)
 true_betas2[1] <- 1
 true_betas2[2] <- 2
+true_betas[20] <- 0.1
+
+select_method2 <- c("forward", "backward", "both")
+
+sim_conditions2 <- expand.grid(trial_index = 1:ntrials,
+                              select_method = select_method2,
+                              n = ns,
+                              covar = covar,
+                              split_prop = split_prop,
+                              stringsAsFactors = FALSE)
+
+start_time <- Sys.time()
+beta2_df <- run_sim_parallel(true_betas2, sim_conditions2, nreps)
+write.csv(beta2_df, "generated-data/beta2_df.csv")
+print(Sys.time() - start_time)
+
+stopCluster(cl)

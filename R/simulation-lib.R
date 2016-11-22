@@ -65,15 +65,33 @@ pick_fit_model <- function(xs, ys, method = c("step", "leaps"),
 
 run_sim <- function(nreps, n, true_betas,
                     select_method = c("step", "leaps"),
-                    direction = "both",
+                    direction = "both", split_prop = -1,
                     gen_dist = gen_xs_default, error_dist = rnorm,
                     ...) {
     sim_num_lst <- list()
     ci_lst <- list()
     for (i in 1:nreps) {
         dat <- gen_data(n, true_betas, gen_dist, error_dist, ...)
-        ci <- pick_fit_model(dat$xs, dat$ys, select_method, direction)
-        ci_lst[[i]] <- ci
+        if (split_prop > 0) {
+            stopifnot(split_prop < 1)
+            train_test <- train_test_split(dat$xs, dat$ys, split_prop)
+            picked_ci <- pick_fit_model(train_test$xs_train,
+                                        train_test$ys_train,
+                                        select_method, direction)
+            #picked_form <- extract_form(picked_ci)
+            vars <- rownames(picked_ci)[-1]
+            form_str <- paste("train_test$ys_test", "~",
+                              paste(vars, collapse = " + "))
+            picked_form <- as.formula(form_str)
+            test_fit <- lm(picked_form, data = train_test$xs_test)
+            ci <- confint(test_fit)
+            ci_lst[[i]] <- ci
+        }
+        else {
+            ci <- pick_fit_model(dat$xs, dat$ys, select_method,
+                                 direction)
+            ci_lst[[i]] <- ci
+        }
         sim_num_lst[[i]] <- rep(i, dim(ci)[1])
     }
 
@@ -87,11 +105,11 @@ run_sim <- function(nreps, n, true_betas,
     return(ret_df)
 }
 
-
 plot_sim <- function(res_df, true_betas) {
     p <- length(true_betas)
     plots_lst <- list()
     coverages <- rep(NA, p)
+    names(coverages) <- names(true_betas)
     for (i in 1:p) {
         true_val <- true_betas[i]
         beta_name <- names(true_betas)[i]
@@ -110,12 +128,22 @@ plot_sim <- function(res_df, true_betas) {
                                    alpha = 0.5) +
             ggplot2::geom_hline(yintercept = true_val, color = "red") +
             ggplot2::ggtitle(paste(beta_name,
-                                   "Coverage: ", round(coverage, 4)))
+                                   "Coverage: ", round(coverage, 4))) +
+            ggplot2::xlab("Index") + ggplot2::ylab("95% CI")
         plots_lst[[i]] <- plt
     }
     return(list(plots = plots_lst, coverages = coverages))
 }
 
-train_test_split <- function(xs, split_prop = 0.5) {
-    # return splitted data
+train_test_split <- function(xs, ys, split_prop = 0.5) {
+    stopifnot(split_prop > 0, split_prop < 1)
+    samp_size <- floor(split_prop * nrow(xs))
+    train_ind <- sample(seq_len(nrow(xs)), samp_size)
+    xs_train <- xs[train_ind, ]
+    xs_test <- xs[-train_ind, ]
+    ys_train <- ys[train_ind, ]
+    ys_test <- ys[-train_ind, ]
+    ret <- list(xs_train = xs_train, xs_test = xs_test,
+                ys_train = ys_train, ys_test = ys_test)
+    return(ret)
 }

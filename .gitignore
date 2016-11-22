@@ -7,3 +7,10 @@ inst/doc
 # generated files
 *.rds
 *.csv
+
+# latex temp files
+*concordance.tex
+*.log
+*.synctex.gz
+*.pdf
+report.tex

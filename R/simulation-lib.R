@@ -153,10 +153,8 @@ run_coverage_selected <- function(nreps, n, true_betas,
     selected_names <- selected_df$coef_name
     select_probs[selected_names] <- selected_df$pct_selected
     select_probs[is.na(select_probs)] <- 0
-    #stopifnot(nrow(selected_df) == p)
-    #stopifnot(selected_df$coef_name == names(coverages))
-    #select_probs <- selected_df$pct_selected
-    #names(select_probs) <- names(true_betas)
+
+    stopifnot(all(names(coverages) == names(select_probs)))
 
     retval <- list(coverages = coverages, select_probs = select_probs)
     return(retval)
@@ -166,11 +164,10 @@ run_coverage_selected <- function(nreps, n, true_betas,
 plot_sim <- function(res_df, true_betas) {
     p <- length(true_betas)
     plots_lst <- list()
-    coverages <- rep(NA, p)
-    names(coverages) <- names(true_betas)
+    beta_names_vec <- unique(res_df$coef_name)
     for (i in 1:p) {
         true_val <- true_betas[i]
-        beta_name <- names(true_betas)[i]
+        beta_name <- beta_names_vec[i]
         cur_dat <- res_df[res_df$coef_name == beta_name, ]
         if (nrow(cur_dat) == 0) {
             next
@@ -178,7 +175,6 @@ plot_sim <- function(res_df, true_betas) {
         cur_dat <- cur_dat[order(cur_dat$pt_est),]
         cur_dat$index <- 1:nrow(cur_dat)
         coverage <- mean(cur_dat$lb < true_val & true_val < cur_dat$ub)
-        coverages[i] <- coverage
 
         plt <- ggplot2::ggplot(data = cur_dat,
                                ggplot2::aes(x = index, y = pt_est)) +
@@ -190,7 +186,7 @@ plot_sim <- function(res_df, true_betas) {
             ggplot2::xlab("Index") + ggplot2::ylab("95% CI")
         plots_lst[[i]] <- plt
     }
-    return(list(plots = plots_lst, coverages = coverages))
+    return(plots_lst)
 }
 
 train_test_split <- function(xs, ys, split_prop = 0.5) {

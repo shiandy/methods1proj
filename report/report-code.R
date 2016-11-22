@@ -65,20 +65,22 @@ sim_conditions1 <- expand.grid(trial_index = 1:ntrials,
                               covar = covar,
                               split_prop = split_prop,
                               stringsAsFactors = FALSE)
+print(nrow(sim_conditions1))
 
 cl <- makeCluster(4)
 registerDoParallel(cl)
 
-start_time <- Sys.time()
+start_time1 <- Sys.time()
 beta1_df <- run_sim_parallel(true_betas1, sim_conditions1, nreps)
 write.csv(beta1_df, "generated-data/beta1_df.csv")
-print(Sys.time() - start_time)
+elapsed1 <- Sys.time() - start_time1
+print(elapsed1)
 
 # Harder case
 true_betas2 <- rep(0, 20)
 true_betas2[1] <- 1
 true_betas2[2] <- 2
-true_betas[20] <- 0.1
+true_betas2[20] <- 0.1
 
 select_method2 <- c("forward", "backward", "both")
 
@@ -88,10 +90,12 @@ sim_conditions2 <- expand.grid(trial_index = 1:ntrials,
                               covar = covar,
                               split_prop = split_prop,
                               stringsAsFactors = FALSE)
+print(nrow(sim_conditions2))
 
-start_time <- Sys.time()
+start_time2 <- Sys.time()
 beta2_df <- run_sim_parallel(true_betas2, sim_conditions2, nreps)
 write.csv(beta2_df, "generated-data/beta2_df.csv")
-print(Sys.time() - start_time)
+elapsed2 <- Sys.time() - start_time2
+print(elapsed2)
 
 stopCluster(cl)

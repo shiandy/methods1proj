@@ -1,112 +1,81 @@
 library("methods1proj")
-library("dplyr")
 library("ggplot2")
 library("cowplot")
+library("doParallel")
+library("foreach")
 
-set.seed(1262)
+run_sim_parallel <- function(true_betas, sim_conditions, nreps = 10) {
+    all_data <- foreach(i = 1:nrow(sim_conditions)) %dopar% {
+        require("methods1proj")
+        require("magrittr")
+        require("dplyr")
+        set.seed(1262 + i)
+        p <- length(true_betas)
+        cur_n <- sim_conditions$n[i]
+        cur_select <- sim_conditions$select_method[i]
+        cur_split_prop <- sim_conditions$split_prop[i]
+        cur_covar <- sim_conditions$covar[i]
+        cur_trial <- sim_conditions$trial_index[i]
 
-# helper function to run the simulation and generate plots
-run_plot_sim <- function(nreps, n, true_betas,
-                    select_method = c("step", "leaps"),
-                    direction = "both", split_prop = -1,
-                    gen_dist = gen_xs_default, error_dist = rnorm,
-                    plot_coefs = FALSE, ...) {
-    p <- length(true_betas)
-    start <- Sys.time()
-    sim_res <- run_sim(nreps, n, true_betas,
-                       select_method, direction, split_prop, gen_dist,
-                       error_dist, ...)
-    elapsed <- Sys.time() - start
-    print(elapsed)
-    names(true_betas) <- c("(Intercept)", paste0("V", 1:(p - 1)))
+        if (cur_select != "leaps") {
+            select_method <- "step"
+        } else {
+            select_method <- "leaps"
+        }
 
-    print("Number of times selected:")
-    print(summary(sim_res$coef_name))
-
-    #sim_res %>% group_by(coef_name) %>% summarize(pct = sum(signif))
-
-    plot_res <- plot_sim(sim_res, true_betas)
-    plots_lst <- plot_res$plots
-    coverages <- plot_res$coverages
-
-    if (plot_coefs) {
-        plots_lst$labels <- LETTERS[1:4]
-        print(do.call(plot_grid, plots_lst))
+        # essentially, covar == 0 but we can't test floating pt
+        # equality
+        if (cur_covar < 0.00001) {
+            ret <- run_coverage_selected(nreps, cur_n, true_betas,
+                                         select_method,
+                                         direction = cur_select,
+                                         split_prop = cur_split_prop)
+        } else {
+            ret <- run_coverage_selected(nreps, cur_n, true_betas,
+                                         select_method,
+                                         direction = cur_select,
+                                         split_prop = cur_split_prop,
+                                         gen_dist = gen_xs_corr,
+                                         covar = cur_covar)
+        }
+        res_df <- data.frame(trial = rep(cur_trial, p),
+                             select_method = rep(cur_select, p),
+                             n = rep(cur_n, p),
+                             covar = rep(cur_covar, p),
+                             coef_name = names(ret$coverages),
+                             coverage = ret$coverages,
+                             select_prob = ret$select_probs)
     }
-
-    coverages_df <- data.frame(coef_name = names(coverages),
-                               coverage = coverages)
-    p_cover <- ggplot(data = coverages_df, aes(x = coef_name,
-                                               y = coverage)) +
-        geom_point() + ylim(min(0.949, min(coverages)), 1) +
-        geom_hline(yintercept = 0.95, color = "red") +
-        ggtitle("Coverage Probability") + xlab("Coefficient") +
-        ylab("Coverage Probability")
-    #print(p_cover)
-
-    selected_df <- sim_res %>% group_by(coef_name) %>%
-            summarize(pct_selected = n() / nreps)
-    p_select <- ggplot(data = selected_df, aes(x = coef_name,
-                                        y = pct_selected)) +
-        geom_point() + ggtitle("Selection Probability") +
-        xlab("Coefficient") + ylab("Selection Probability")
-    #print(p_select)
+    final_df <- do.call(rbind, all_data)
+    return(final_df)
 }
-
-
 
 # "Easy case"
 true_betas1 <- c(1, 2, 0, 0.1)
-nreps <- 1000
-n1 <- 50
-#par(mfrow = c(2, 2))
-sim_types <- c("leaps", "forward", "backward", "both")
+ntrials <- 2
+nreps <- 10
+ns <- c(50, 100)
+#select_method <- c("leaps", "forward", "backward", "both")
+select_method <- c("leaps", "forward")
+covar <- c(0, 0.5)
+split_prop <- c(-1, 0.5)
 
-# TESTING, REMOVE LATER
-for (m in sim_types) {
-    select_method = "leaps"
-    if (m != "leaps") {
-        select_method = "step"
-    }
-    run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
-                 select_method = select_method, direction = m)
-}
+sim_conditions1 <- expand.grid(trial_index = 1:ntrials,
+                              select_method = select_method,
+                              n = ns,
+                              covar = covar,
+                              split_prop = split_prop,
+                              stringsAsFactors = FALSE)
 
-run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
-             select_method = select_method, direction = m,
-             split_prop =  0.5)
+cl <- makeCluster(4)
+registerDoParallel(cl)
 
-# try with correlation
-for (m in sim_types) {
-    select_method = "leaps"
-    if (m != "leaps") {
-        select_method = "step"
-    }
-    run_plot_sim(nreps, n1, true_betas1, plot_coefs = FALSE,
-                 select_method = select_method, direction = m,
-                 gen_dist = gen_xs_corr, covar = 0.95)
+beta1_df <- run_sim_parallel(true_betas1, sim_conditions1, nreps)
+write.csv(beta1_df, "generated-data/beta1_df.csv")
 
-}
 
-# Bigger n
-par(mfrow = c(2, 2))
-n2 <- 500
-for (m in sim_types) {
-    select_method = "leaps"
-    if (m != "leaps") {
-        select_method = "step"
-    }
-    run_plot_sim(nreps, n2, true_betas1, plot_coefs = FALSE,
-                 select_method = select_method, direction = m)
-
-}
 
 # Harder case
 true_betas2 <- rep(0, 20)
 true_betas2[1] <- 1
 true_betas2[2] <- 2
-step_dir <- c("forward", "backward", "both")
-for (s in step_dir) {
-    run_plot_sim(nreps, n1, true_betas2, plot_coefs = FALSE,
-                 select_method = "step", direction = s)
-}

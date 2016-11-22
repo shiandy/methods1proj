@@ -105,6 +105,64 @@ run_sim <- function(nreps, n, true_betas,
     return(ret_df)
 }
 
+get_coverages <- function(res_df, true_betas) {
+    p <- length(true_betas)
+    coverages <- rep(NA, p)
+    names(coverages) <- names(true_betas)
+    for (i in 1:p) {
+        true_val <- true_betas[i]
+        beta_name <- names(true_betas)[i]
+        cur_dat <- res_df[res_df$coef_name == beta_name, ]
+        if (nrow(cur_dat) == 0) {
+            next
+        }
+        coverage <- mean(cur_dat$lb < true_val & true_val < cur_dat$ub)
+        coverages[i] <- coverage
+    }
+    return(coverages)
+}
+
+# helper function to run the simulation and generate plots
+run_coverage_selected <- function(nreps, n, true_betas,
+                                  select_method = c("step", "leaps"),
+                                  direction = "both", split_prop = -1,
+                                  gen_dist = gen_xs_default,
+                                  error_dist = rnorm, ...) {
+
+    p <- length(true_betas)
+    start <- Sys.time()
+    sim_res <- run_sim(nreps, n, true_betas,
+                       select_method, direction, split_prop, gen_dist,
+                       error_dist, ...)
+    elapsed <- Sys.time() - start
+    print(elapsed)
+    names(true_betas) <- c("(Intercept)", paste0("V", 1:(p - 1)))
+
+    print("Number of times selected:")
+    print(summary(sim_res$coef_name))
+
+    #sim_res %>% group_by(coef_name) %>% summarize(pct = sum(signif))
+
+    coverages <- get_coverages(sim_res, true_betas)
+
+    selected_df <- sim_res %>% dplyr::group_by(coef_name) %>%
+            dplyr::summarize(pct_selected = n() / nreps)
+
+    select_probs <- rep(NA, p)
+    names(select_probs) <- names(true_betas)
+    selected_names <- selected_df$coef_name
+    select_probs[selected_names] <- selected_df$pct_selected
+    select_probs[is.na(select_probs)] <- 0
+    #stopifnot(nrow(selected_df) == p)
+    #stopifnot(selected_df$coef_name == names(coverages))
+    #select_probs <- selected_df$pct_selected
+    #names(select_probs) <- names(true_betas)
+
+    retval <- list(coverages = coverages, select_probs = select_probs)
+    return(retval)
+}
+
+
 plot_sim <- function(res_df, true_betas) {
     p <- length(true_betas)
     plots_lst <- list()

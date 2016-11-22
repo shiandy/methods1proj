@@ -13,4 +13,6 @@ Suggests: testthat,
 VignetteBuilder: knitr
 Imports: MASS,
     ggplot2,
-    leaps
+    leaps,
+    magrittr,
+    dplyr

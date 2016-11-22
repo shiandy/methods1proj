@@ -30,10 +30,3 @@ test_that("train_test_split stops when split_prop wrong", {
     expect_error(train_test_split(1, 1, -1))
     expect_error(train_test_split(1, 1, 1))
 })
-
-test_that("extract_form works", {
-    fake_ci <- matrix(2, nrow = 3, ncol = 2)
-    rownames(fake_ci) <- c("(Intercept)", "V1", "V2")
-    ans <- as.formula("train_test$ys_test ~ V1 + V2")
-    expect_equal(extract_form(fake_ci), ans)
-})

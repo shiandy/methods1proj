@@ -3,3 +3,7 @@
 .RData
 .Ruserdata
 inst/doc
+
+# generated files
+*.rds
+*.csv

@@ -1,8 +1,45 @@
+#' Default function to generate covariates X.
+#'
+#' Generates the X_i independently, with each component of X_i
+#' also being an independent Normal(0, 1). Exported to the user.
+#'
+#' @param n Number of observations to generate
+#' @param p Number of dimensions for each observation (includes the
+#'  intercept)
+#'
+#' @return An n * (p-1) matrix of generated covariates
+#' @export
+#'
+#' @examples
+#' gen_xs_default(10, 2)
 gen_xs_default <- function(n, p) {
     xs <- matrix(rnorm(n * (p - 1)), nrow = n, ncol = p - 1)
     return(xs)
 }
 
+#' Generate correlated covariates X
+#'
+#' Generate the X_i independently, but with each component of X_i
+#' distributed Multivariate Normal with mean 0 and covariance matrix
+#' with 1 on the diagonal and \code{covar} on the off-diagonal. Exported
+#' to the user.
+#'
+#' @param covar Off-diagonal element of covariance matrix.
+#' @inheritParams gen_xs_default
+#'
+#' @return An n * (p-1) matrix of generated covariates
+#' @export
+#'
+#' @examples
+#' gen_xs_corr(10, 2)
+#' gen_xs_corr(10, 2, 0.5)
+#'
+#' set.seed(1)
+#' # these should be equivalent
+#' x1 <- gen_xs_corr(10, 2, 0)
+#' set.seed(1)
+#' x2 <- gen_xs_default(10, 2)
+#' all(x1 == x2)
 gen_xs_corr <- function(n, p, covar = 0.5) {
     mus <- rep(0, p - 1)
     covar_mat <- matrix(covar, nrow = p - 1, ncol = p - 1)
@@ -11,6 +48,19 @@ gen_xs_corr <- function(n, p, covar = 0.5) {
     return(xs)
 }
 
+#' Generate both the covariates and the outcomes
+#'
+#' Generates X using \code{gen_dist} and then generates
+#' Y = beta_0 + XB + eps, #' where eps is generated according to
+#' \code{error_dist}. NOT exported to the user.
+#'
+#' @param n Number of observations
+#' @inheritParams run_sim
+#'
+#'
+#' @return
+#' A list \code{lst}, with element \code{lst$xs} corresponding to the
+#' covariates and \code{lst$ys} corresponding to the responses.
 gen_data <- function(n, true_betas, gen_dist = gen_xs_default,
                      error_dist = rnorm, ...) {
     p <- length(true_betas)
@@ -20,6 +70,18 @@ gen_data <- function(n, true_betas, gen_dist = gen_xs_default,
     return(list(xs = as.data.frame(xs), ys = ys))
 }
 
+#' Pick the best model using \code{leaps} and return its fitted
+#' confidence intervals.
+#'
+#' Pick the best model using \code{leaps} and return its fitted
+#' confidence intervals. NOT exported to the user.
+#'
+#' @param xs covariates
+#' @param ys responses
+#' @param method A valid argument to the \code{methods} argument of the
+#' leaps command
+#'
+#' @return 95% confidence intervals from the selected model.
 pick_fit_model_leaps <- function(xs, ys, method) {
     res <- leaps::leaps(xs, ys, method = method)
     best_mod <- which.max(get(method, res))
@@ -28,6 +90,18 @@ pick_fit_model_leaps <- function(xs, ys, method) {
     return(confint(best_fit))
 }
 
+#' Pick the best model using \code{step} and return its fitted
+#' confidence intervals.
+#'
+#' Pick the best model using \code{step} and return its fitted
+#' confidence intervals. NOT exported to the user.
+#'
+#' @param xs covariates
+#' @param ys responses
+#' @param direction A valid argument to the \code{direction} argument of
+#' the \code{step} command
+#'
+#' @return 95% confidence intervals from the selected model.
 pick_fit_model_step <- function(xs, ys, direction) {
     if (direction != "backward") {
         fit_null <- lm(ys ~ 1, data = xs)
@@ -45,6 +119,19 @@ pick_fit_model_step <- function(xs, ys, direction) {
     return(confint(step_res))
 }
 
+#' Pick the best linear regression model and fit it.
+#'
+#' Calls \code{pick_fit_model_leaps} or \code{pick_fit_model_step} to
+#' actually do the underlying work. NOT exported to the user.
+#'
+#' @param xs Covariates
+#' @param ys Responses
+#' @param method If leaps, run leaps. Otherwise, if step, run step-wise
+#' selection
+#' @param direction Only valid of \code{method = "step"}. Run step-wise
+#' selection using \code{step} in the specified direction
+#'
+#' @return 95% confidence intervals from the selected model.
 pick_fit_model <- function(xs, ys, method = c("step", "leaps"),
                            direction = "both") {
     method <- match.arg(method)
@@ -63,6 +150,46 @@ pick_fit_model <- function(xs, ys, method = c("step", "leaps"),
     return(ci)
 }
 
+#' Run one replicate of the simulation.
+#'
+#' Run one replicate of the simulation. Exported to the user.
+#'
+#' @param nreps Number of repetitions to run, or how many datasets to
+#' generate
+#' @param n Number of observations per dataset.
+#' @param select_method If leaps, run leaps. Otherwise, if step, run
+#' step-wise selection
+#' @param direction Only valid of \code{method = "step"}. Run step-wise
+#' selection using \code{step} in the specified direction
+#' @param split_prop If non-positive, run naive method, where the
+#' confidence #' intervals are calculated on the same data used to
+#' select the variables. Otherwise, if 0 < \code{split_prop} < 1,
+#' randomly subset \code{split_prop} of the data to be in the training
+#' set, and the other part to be in the test set. Run variable selection
+#' on the training set, and report the final confidence interval as
+#' calculated by fitting the selected model on the test set.
+#' @param true_betas A vector of true values of regression coefficients.
+#' Should include the intercept as the first item, beta1 as the second,
+#' etc.
+#' @param gen_dist A function specifiying how to generate the
+#' covariates. Should take \code{n} as its first argument, corresponding
+#' to the number of observations, and \code{p} as the second,
+#' corresponding to the number of dimensions per observation (including
+#' the intercept, so each X_i has p-1 dimensions).
+#' @param error_dist A function specifying how to generate the errors.
+#' Should take \code{n} as the first argument, specifying the number of
+#' observations
+#' @param ... Additional arguments to gen_dist
+#' @return A dataframe, with each row corresponding to one coefficient
+#' that has been selected in one iteration, and columns:
+#'
+#' \item{\code{lb}}{Lower bound of the confidence interval}
+#' \item{\code{ub}}{Upper bound of the confidence interval}
+#' \item{\code{coef_name}}{Name of the coefficient}
+#' \item{\code{sim_num}}{Which iteration of the simulation is this
+#' coefficient from?}
+#'
+#' @export
 run_sim <- function(nreps, n, true_betas,
                     select_method = c("step", "leaps"),
                     direction = "both", split_prop = -1,
@@ -78,7 +205,8 @@ run_sim <- function(nreps, n, true_betas,
             picked_ci <- pick_fit_model(train_test$xs_train,
                                         train_test$ys_train,
                                         select_method, direction)
-            #picked_form <- extract_form(picked_ci)
+            # extract names of CI and build a formula to refit the
+            # model on the test set
             vars <- rownames(picked_ci)[-1]
             form_str <- paste("train_test$ys_test", "~",
                               paste(vars, collapse = " + "))
@@ -92,6 +220,7 @@ run_sim <- function(nreps, n, true_betas,
                                  direction)
             ci_lst[[i]] <- ci
         }
+        # keep track of which simulation this was
         sim_num_lst[[i]] <- rep(i, dim(ci)[1])
     }
 
@@ -105,6 +234,15 @@ run_sim <- function(nreps, n, true_betas,
     return(ret_df)
 }
 
+#' Get the coverage of each coefficient
+#'
+#' @param res_df data.frame returned by \code{\link{run_sim}}
+#' @inheritParams run_sim
+#'
+#' @return A vector of coverages, one per each coefficient. The vector
+#'   is nameded, with each element corresponding to the coverage
+#'   probability of one coefficient in one iteration of the simulation
+#'   (is NA if that coefficient was never selected).
 get_coverages <- function(res_df, true_betas) {
     p <- length(true_betas)
     coverages <- rep(NA, p)
@@ -122,7 +260,22 @@ get_coverages <- function(res_df, true_betas) {
     return(coverages)
 }
 
-# helper function to run the simulation and generate plots
+#' Obtain coverage and selection probabilities
+#'
+#' Calls \link{\code{run_sim}} once and processes the result to obtain
+#'  coverage and selection probabilities.
+#'
+#' Might be a bug with \code{get_coverage} and this function. Run with
+#' n = 500 and split_prob = 0.8 and they're all NA.
+#'
+#' @inheritParams run_sim
+#' @return A list \code{lst} containing two vectors. The vector
+#' \code{lst$coverages} is named, with each element corresponding to
+#' the coverage probability of one coefficient in one iteration of the
+#' simulation (is NA if that coefficient was never selected). The
+#' vector \code{lst$select_probs} is like \code{lst$coverages}, but
+#' instead contains the selection probabilities.
+#' @export
 run_coverage_selected <- function(nreps, n, true_betas,
                                   select_method = c("step", "leaps"),
                                   direction = "both", split_prop = -1,
@@ -161,6 +314,17 @@ run_coverage_selected <- function(nreps, n, true_betas,
 }
 
 
+#' Draws coverage plots for one run of the simulation.
+#'
+#' Not really recommended because you ideally want to run the simulation
+#' multiple times to get a sense of the variation. NOT exported to the
+#' user
+#'
+#' @param res_df A data.frame returned by \link{\code{run_sim}}.
+#' @param true_betas A vector of true values of beta, including the
+#' intercept
+#'
+#' @return A list of ggplot2 objects, one per coefficient
 plot_sim <- function(res_df, true_betas) {
     p <- length(true_betas)
     plots_lst <- list()
@@ -189,6 +353,21 @@ plot_sim <- function(res_df, true_betas) {
     return(plots_lst)
 }
 
+#' Train-test split
+#'
+#' Split the data randomly into a training and test set.
+#' NOT exported to the user
+#'
+#' @param xs Covariates
+#' @param ys Responses
+#' @param split_prop Proportion in the training set. Must be between 0
+#' and 1, non-inclusive
+#'
+#' @return A list with elements
+#' \item{\code{xs_train}}{Training set of covariates}
+#' \item{\code{xs_test}}{Test set of covariates}
+#' \item{\code{ys_train}}{Training set of responses}
+#' \item{\code{ys_test}}{Test set of responses}
 train_test_split <- function(xs, ys, split_prop = 0.5) {
     stopifnot(split_prop > 0, split_prop < 1)
     samp_size <- floor(split_prop * nrow(xs))

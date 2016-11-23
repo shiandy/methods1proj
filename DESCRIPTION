@@ -7,12 +7,15 @@ Maintainer: Andy Shi <andyshi@g.harvard.edu>
 Description: Methods 1 Project, Fall 2016.
 License: MIT
 LazyData: TRUE
-Suggests: testthat,
+Suggests:
+    testthat,
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-Imports: MASS,
+Imports:
+    MASS,
     ggplot2,
     leaps,
     magrittr,
     dplyr
+RoxygenNote: 5.0.1

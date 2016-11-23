@@ -4,6 +4,23 @@ library("cowplot")
 library("doParallel")
 library("foreach")
 
+#' Run simulation in parallel
+#'
+#' Requires foreach and some kind of parallel backend to work in
+#' parallel. Can be very slow for large number of simulation
+#' configurations.
+#'
+#' @param true_betas True values of beta
+#' @param sim_conditions A dataframe with simulation configurations.
+#' Each row must be one simulation configuration. The elements should be
+#' n, select_method, split_prob, covar, trial_index (the number of trial
+#' indices indicates the number of replicates to run).
+#' @param nreps Number of repetitions/iterations to run in each
+#' simulation.
+#'
+#' @return A dataframe of results, just like \code{sim_conditions},
+#' but with added columns of \code{coverage} and \code{select_prob}
+#' corresponding to the coverage and selection probabilities.
 run_sim_parallel <- function(true_betas, sim_conditions, nreps = 10) {
     all_data <- foreach(i = 1:nrow(sim_conditions)) %dopar% {
         require("methods1proj")
@@ -68,6 +85,7 @@ sim_conditions1 <- expand.grid(trial_index = 1:ntrials,
                               stringsAsFactors = FALSE)
 print(nrow(sim_conditions1))
 
+# set up stuff so we can do parallel
 cl <- makeCluster(4)
 registerDoParallel(cl)
 
@@ -75,6 +93,7 @@ start_time1 <- Sys.time()
 beta1_df <- run_sim_parallel(true_betas1, sim_conditions1, nreps)
 elapsed1 <- Sys.time() - start_time1
 print(elapsed1)
+# save outputs
 write.csv(beta1_df, "generated-data/beta1_df.csv")
 saveRDS(beta1_df, "generated-data/beta1_df.rds")
 

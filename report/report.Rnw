@@ -5,6 +5,17 @@
 \usepackage{amssymb}       % Needed for some math symbols
 \usepackage{mathpazo}      % Palatino font
 \usepackage{microtype}      % Better text justification and spacing
+\usepackage{hyperref}
+\usepackage[backend=biber,style=numeric,sorting=none,maxnames=4]{biblatex}
+\addbibresource{references.bib}
+\DeclareSourcemap{
+  \maps[datatype=bibtex]{
+    \map{
+      \step[fieldsource=url,final]
+      \step[fieldset=doi,null]
+    }
+  }
+}
 
 %Suggested by TeXworks
 \usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
@@ -41,7 +52,7 @@
 \lfoot{} \cfoot{\thepage} \rfoot{}
 
 \begin{document}
-\title{Methods I Project Report}
+\title{Inference in Linear Models After Variable Selection}
 \author{Andy Shi}
 \date{November 22, 2016}
 \maketitle
@@ -58,11 +69,134 @@ library("dplyr")
 
 \section{Introduction}
 
+In linear regression, the problem of variable selection is the problem
+of selecting the best subset of $J$ predictors, $X_1, X_2, \ldots, X_J$.
+Variable selection is used in many contexts. For example, in
+observational studies, large numbers of potentially predictive variables
+are collected without strong prior information regarding which variables
+are important predictors of the outcome. Variable selection is often
+based on knowledge of the roles of the variables in DAGs, but there are
+also automated algorithms to aid in variable selection, such as stepwise
+selection. In my project, I sought to investigate the influence of model
+selection on subsequent inference on the selected variables using
+simulation.
+
 \section{Methods}
+
+In my simulations, I start with $J + 1$ known coefficients $\vect{\beta}
+= (\beta_0, \beta_1, \beta_2, \ldots, \beta_J)^T$. Predictors
+$\vect{X}_i \in R^J$ are simulated, where $\vect{X}_i
+\overset{\textnormal{iid}}{\sim} \Norm(\vect{0}, \Sigma)$. Responses
+$Y_i$ are generated independently, such that
+
+\[ Y_i = \vect{X}_i^T \vect{\beta} + \epsilon_i, \qquad \epsilon_i
+\overset{\textnormal{iid}}{\sim} \Norm(0, 1) \]
+
+Then, variable selection is performed using one of the following 4
+techniques:
+
+\begin{enumerate}
+
+\item Leaps and bound, which performs an exhaustive search over all the
+parameters. This option was only used when the number of parameters $J$
+is small ($J \leq 6$). I used the R package \texttt{leaps}. The model
+that was selected was the one that minimized the adjusted $R^2$.
+
+\item Forward stepwise selection, by AIC.
+
+\item Backward stepwise selection, by AIC.
+
+\item Stepwise selection in both directions, by AIC.
+
+\end{enumerate}
+
+Two approaches were used to perform variable selection and estimation of
+$\vect{\beta}$. Both methods obtained marginal 95\% confidence intervals
+for all coefficients.
+
+\begin{enumerate}
+
+\item Naive method: All of the observations are used for variable
+selection, and the resulting 95\% confidence intervals were derived from
+fitting the selected model on all the observations.
+
+\item Split-data method, as suggested by Berk~\cite{berk2010}:
+Some proportion $p$ of observations are randomly selected to be in the
+\emph{training} set, and the remainder are selected to be in the
+\emph{test} set. Variable selection is performed on the training set,
+and the final 95\% confidence intervals for $\vect{\beta}$ are obtained
+by fitting the selected model on the test set.
+
+\end{enumerate}
+
+Potentially, the naive approach will overfit the data, since the data
+used to select the variables is the same data that is being used to
+evaluate the resulting model. Berk~\cite{berk2010} notes that,
+additionally, inference using the naive method does not have a nice
+interpretation. However, using the split-data method, performing
+variable selection on the training set can be thought of as an
+exploratory analysis, while using the test set to evaluate the selected
+variables can be thought of as a confirmatory analysis on independent
+data. Thus, inference on the test set is valid~\cite{berk2010}.
+
+In my simulations, several parameters were varied. First, there are the
+two approaches to obtain confidence intervals for $\vect{\beta}$ (naive
+and split-data). The split-data method was simulated with $p = 0.5$ and
+$p = 0.8$. Next, there are 4 methods for variable selection. I set two
+values for $n$, $n = 50$ and $n = 500$, for the number of total
+observations. I also used two different settings for the covariance
+matrix $\Sigma$. In one scenario, $\Sigma = I$, where $I$ is a $J \times
+J$ identity matrix. In the second scenario, I set $\Sigma$ to have 1 on
+the diagonal and $0.5$ all off-diagonal elements, to simulate correlated
+predictors.
+
+Finally, two settings were used for $\vect{\beta}$. The first setting
+had
+
+\[
+    \beta_0 = 1, \, \beta_1 = 2, \, \beta_2 = 0, \, \beta_3 = 0.1
+\]
+
+and the second had
+
+\[
+\beta_0 = 1, \, \beta_1 = 2, \, \beta_j = 0 \textnormal{ for } j = 2, 3,
+\ldots, 18, \, \beta_{19} = 0.1
+\]
+
+These two scenarios simulate situations where there is one covariate has
+a true large effect, one has a true small effect, and the others have no
+effect.
+
+In total, there are $4 \times 3 \times 2 \times 2 = 48$ distinct
+simulation scenarios for the first setting of $\vect{\beta}$, and $3
+\times 3 \times 2 \times 2 = 36$ distinct simulation scenarios for the
+second setting of $\vect{\beta}$ (I did not evaluate \texttt{leaps}
+because I thought it would be too slow for 20 variables).
+
+Each simulation scenario is run for 1000 repetitions, with the
+randomness coming from a different draw for the covariates $\vect{X}$,
+and replicated 10 times to ensure consistency of the results.
+Performance of the variable selection methods was measured by confidence
+interval coverage and selection probability. For each of the 10
+replications, up to 1000 confidence intervals are generated for each
+$\beta_j$ (the number may be less than 1000 if that $\beta_j$ was
+sometimes not selected). The confidence interval coverage is the
+proportion of generated confidence intervals that covers the true value
+of the parameter, and the selection probability is the proportion of the
+1000 repetitions where $\beta_j$ was selected into the model.
+
+Simulation scenarios and replicates are run in parallel to speed up the
+results.
+
+The code to implement the simulation and reproduce the figures and text
+of this report can be found online at
+\url{https://github.com/shiandy/methods1proj}.
+
 
 \section{Results}
 
-<<>>=
+<<plot-code>>=
 
 plot_coverage_select <- function(df, color = TRUE) {
     plot_coverage <- ggplot(data = df,
@@ -97,23 +231,46 @@ plot_coverage_select <- function(df, color = TRUE) {
 
 }
 
-beta1_df <- readRDS("generated-data/beta1_df.rds")
-beta1_plots <- plot_coverage_select(beta1_df)
-
-beta2_df <- readRDS("generated-data/beta2_df.rds")
-beta2_plots <- plot_coverage_select(beta2_df, color = FALSE)
 @
 
-<<>>=
+<<beta1-plots, eval = FALSE>>=
+beta1_df <- readRDS("generated-data/beta1_df.rds")
+beta1_plots_nosplit <- plot_coverage_select(beta1_df[beta1_df$split_prop < 0,])
+beta1_plots_split1 <- plot_coverage_select(beta1_df[beta1_df$split_prop
+                                           == 0.5,])
+beta1_plots_split2 <- plot_coverage_select(beta1_df[beta1_df$split_prop
+                                           == 0.8,])
+plot_grid(beta2_plots_nosplit$plot_coverage +
+              ggtitle("Coverage Probability, Naive Method"),
+          beta2_plots_split1$plot_coverage +
+              ggtitle("Coverage Probability, p = 0.5"),
+          beta2_plots_split2$plot_coverage +
+              ggtitle("Coverage Probability, p = 0.8"),
+          nrow = 2)
 
-beta1_plots$plot_coverage
-beta1_plots$plot_select
+beta1_plots_nosplit$plot_select
+beta1_plots_split1$plot_select
+beta1_plots_split2$plot_select
 
-beta2_plots$plot_coverage +
+
+@
+
+<<beta2-plots, eval = FALSE>>=
+beta2_df <- readRDS("generated-data/beta2_df.rds")
+beta2_plots <- plot_coverage_select(beta2_df, color = FALSE)
+beta2_plots_nosplit <- plot_coverage_select(beta2_df[beta2_df$split_prop < 0,])
+beta2_plots_split <- plot_coverage_select(beta2_df[beta2_df$split_prop >= 0,])
+
+beta2_plots_nosplit$plot_coverage +
     geom_hline(yintercept = 0.95, color = "red") +
     theme(axis.text.x=element_text(angle= 45, size = 10, hjust=1))
+beta2_plots_nosplit$plot_select +
+    theme(axis.text.x=element_text(angle=45, size = 10, hjust=1))
 
-beta2_plots$plot_select +
+beta2_plots_split$plot_coverage +
+    geom_hline(yintercept = 0.95, color = "red") +
+    theme(axis.text.x=element_text(angle= 45, size = 10, hjust=1))
+beta2_plots_split$plot_select +
     theme(axis.text.x=element_text(angle=45, size = 10, hjust=1))
 
 @
@@ -121,5 +278,14 @@ beta2_plots$plot_select +
 
 \section{Conclusion}
 
+\appendix
+
+\section{Supplemental Figures}
+
+% bibliography
+%\renewcommand*{\bibfont}{\footnotesize}
+%\setlength\bibitemsep{0pt}
+
+\printbibliography
 
 \end{document}

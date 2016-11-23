@@ -6,6 +6,8 @@
 \usepackage{mathpazo}      % Palatino font
 \usepackage{microtype}      % Better text justification and spacing
 \usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{float}
 \usepackage[backend=biber,style=numeric,sorting=none,maxnames=4]{biblatex}
 \addbibresource{references.bib}
 \DeclareSourcemap{
@@ -65,7 +67,20 @@ library("cowplot")
 library("dplyr")
 @
 
-\abstract{Abstract here}
+\abstract{Variable selection is often used in linear regression to
+select a best subset of predictors from a superset of many possible
+predictors. However, the resulting inference may be suspect because the
+selected variables are more likely to be significantly associated with
+the outcome. We examine the inference properties of two automated
+methods for variable selection: leaps-and-bounds and stepwise selection.
+Using simulations, I show that these methods have an inflated Type-I
+error rate under many configurations of the $\vect{\beta}$ coefficients
+and the predictors. Furthermore, I show using simulation that performing
+variable selection using one dataset (the training set) and obtaining
+final estimates and standard errors for the coefficients using an
+independent dataset (the test set) does provide valid inference. This
+study shows that naive variable selection is flawed, and that using
+training/test sets may be a potential workaround.}
 
 \section{Introduction}
 
@@ -120,7 +135,7 @@ for all coefficients.
 selection, and the resulting 95\% confidence intervals were derived from
 fitting the selected model on all the observations.
 
-\item Split-data method, as suggested by Berk~\cite{berk2010}:
+\item Data-splitting method, as suggested by Berk~\cite{berk2010}:
 Some proportion $p$ of observations are randomly selected to be in the
 \emph{training} set, and the remainder are selected to be in the
 \emph{test} set. Variable selection is performed on the training set,
@@ -133,7 +148,7 @@ Potentially, the naive approach will overfit the data, since the data
 used to select the variables is the same data that is being used to
 evaluate the resulting model. Berk~\cite{berk2010} notes that,
 additionally, inference using the naive method does not have a nice
-interpretation. However, using the split-data method, performing
+interpretation. However, using the data-splitting method, performing
 variable selection on the training set can be thought of as an
 exploratory analysis, while using the test set to evaluate the selected
 variables can be thought of as a confirmatory analysis on independent
@@ -141,9 +156,9 @@ data. Thus, inference on the test set is valid~\cite{berk2010}.
 
 In my simulations, several parameters were varied. First, there are the
 two approaches to obtain confidence intervals for $\vect{\beta}$ (naive
-and split-data). The split-data method was simulated with $p = 0.5$ and
-$p = 0.8$. Next, there are 4 methods for variable selection. I set two
-values for $n$, $n = 50$ and $n = 500$, for the number of total
+and data-splitting). The data-splitting method was simulated with $p =
+0.5$ and $p = 0.8$. Next, there are 4 methods for variable selection. I
+set two values for $n$, $n = 50$ and $n = 500$, for the number of total
 observations. I also used two different settings for the covariance
 matrix $\Sigma$. In one scenario, $\Sigma = I$, where $I$ is a $J \times
 J$ identity matrix. In the second scenario, I set $\Sigma$ to have 1 on
@@ -153,38 +168,29 @@ predictors.
 Finally, two settings were used for $\vect{\beta}$. The first setting
 had
 
-\[
+\begin{equation}
     \beta_0 = 1, \, \beta_1 = 2, \, \beta_2 = 0, \, \beta_3 = 0.1
-\]
+\label{eq:betas1}
+\end{equation}
 
 and the second had
 
-\[
+\begin{equation}
 \beta_0 = 1, \, \beta_1 = 2, \, \beta_j = 0 \textnormal{ for } j = 2, 3,
 \ldots, 18, \, \beta_{19} = 0.1
-\]
+\label{eq:betas2}
+\end{equation}
 
 These two scenarios simulate situations where there is one covariate has
 a true large effect, one has a true small effect, and the others have no
 effect.
 
 In total, there are $4 \times 3 \times 2 \times 2 = 48$ distinct
-simulation scenarios for the first setting of $\vect{\beta}$, and $3
-\times 3 \times 2 \times 2 = 36$ distinct simulation scenarios for the
-second setting of $\vect{\beta}$ (I did not evaluate \texttt{leaps}
-because I thought it would be too slow for 20 variables).
-
-Each simulation scenario is run for 1000 repetitions, with the
-randomness coming from a different draw for the covariates $\vect{X}$,
-and replicated 10 times to ensure consistency of the results.
-Performance of the variable selection methods was measured by confidence
-interval coverage and selection probability. For each of the 10
-replications, up to 1000 confidence intervals are generated for each
-$\beta_j$ (the number may be less than 1000 if that $\beta_j$ was
-sometimes not selected). The confidence interval coverage is the
-proportion of generated confidence intervals that covers the true value
-of the parameter, and the selection probability is the proportion of the
-1000 repetitions where $\beta_j$ was selected into the model.
+simulation scenarios for the first setting of $\vect{\beta}$
+(Equation~\ref{eq:betas1}), and $3 \times 3 \times 2 \times 2 = 36$
+distinct simulation scenarios for the second setting of $\vect{\beta}$
+(Equation~\ref{eq:betas2})--I did not evaluate \texttt{leaps} because I
+thought it would be too slow for 20 variables.
 
 Simulation scenarios and replicates are run in parallel to speed up the
 results.
@@ -193,8 +199,69 @@ The code to implement the simulation and reproduce the figures and text
 of this report can be found online at
 \url{https://github.com/shiandy/methods1proj}.
 
-
 \section{Results}
+
+Each simulation scenario described in the methods section is run for
+1000 repetitions, with the randomness coming from a different draw for
+the covariates $\vect{X}$, and replicated 10 times to ensure consistency
+of the results. Performance of the variable selection methods was
+measured by confidence interval coverage and selection probability. For
+each of the 10 replications, up to 1000 confidence intervals are
+generated for each $\beta_j$ (the number may be less than 1000 if that
+$\beta_j$ was sometimes not selected). The confidence interval coverage
+is the proportion of generated confidence intervals that covers the true
+value of the parameter, and the selection probability is the proportion
+of the 1000 repetitions where $\beta_j$ was selected into the model.
+
+Coverage plots for the two different settings of $\vect{\beta}$ are
+shown in Figure ??. When using the naive approach to estimating the
+coefficients, the coverage of the coefficients with null values is
+reduced to below the nominal rate, especially in small samples. When a
+null variable is selected, it is more likely to be highly associated
+with the outcome, so its confidence interval is likely to not include
+the null value. Since we only consider the confidence intervals that are
+calculated conditional on a variable being selected, these confidence
+intervals are larger and more significant than what we would expect
+otherwise. Confidence intervals achieve their nominal coverage over many
+repetitions of the same experiment. When we do model selection, we only
+look at cases where the variable is highly associated with the outcome,
+so we are not repeating the same experiment every time. This causes the
+confidence intervals to achieve less than their nominal coverage.
+
+For the non-zero coefficients, the coverage is slightly under the
+nominal rate for small samples ($n = 50$), but close to the nominal rate
+when $n = 500$. This could be a function of lower power when the sample
+size is small. I note that, because the data was simulated with
+independent normally-distributed errors, we have exact confidence
+intervals and do not require asymptotics.
+
+When using the data-splitting method, the null coefficients do achieve
+their nominal coverage. This is because they are evaluated against an
+independent test set. Unlike in the naive method, the variables we
+select are tested independently of their selection. Therefore, even if a
+certain variable is highly associated with the outcome in the training
+set, the test set will behave independently. When using the
+data-splitting method, we are repeating the same experiment many times,
+so the confidence intervals do achieve their nominal coverage.
+
+When the predictors are correlated, the nominal coverage of the
+confidence intervals suffer. This is because the correlation between the
+variables is positive. One variable's effect could be explaining away
+the effect of another. This problem is mitigated somewhat in large
+sample sizes.
+
+Selection probability plots are shown in Figures ??. Overall, in both
+scenarios, the variable with a large true effect is selected 100\% of
+the time. The selection probability for the variable with a small true
+effect is lower, and increases with sample size. Furthermore,
+\texttt{leaps} selects this variable more often than the stepwise
+methods. This could be because the stepwise methods will add the
+variable with the large effect, and then the additional contribution by
+the variable with the small effect may not be significant enough. The
+\texttt{leaps} approach considers all subsets, so it would not be
+subject to this limitation. The selection probability for the null
+coefficients hovers around 25\% for the different variable selection
+algorithms.
 
 <<plot-code>>=
 
@@ -228,64 +295,123 @@ plot_coverage_select <- function(df, color = TRUE) {
     ret <- list(plot_coverage = plot_coverage,
                 plot_select = plot_select)
     return(ret)
-
 }
 
 @
 
-<<beta1-plots, eval = FALSE>>=
+<<beta1-plots>>=
 beta1_df <- readRDS("generated-data/beta1_df.rds")
 beta1_plots_nosplit <- plot_coverage_select(beta1_df[beta1_df$split_prop < 0,])
 beta1_plots_split1 <- plot_coverage_select(beta1_df[beta1_df$split_prop
                                            == 0.5,])
 beta1_plots_split2 <- plot_coverage_select(beta1_df[beta1_df$split_prop
                                            == 0.8,])
-plot_grid(beta2_plots_nosplit$plot_coverage +
-              ggtitle("Coverage Probability, Naive Method"),
-          beta2_plots_split1$plot_coverage +
-              ggtitle("Coverage Probability, p = 0.5"),
-          beta2_plots_split2$plot_coverage +
-              ggtitle("Coverage Probability, p = 0.8"),
-          nrow = 2)
-
-beta1_plots_nosplit$plot_select
-beta1_plots_split1$plot_select
-beta1_plots_split2$plot_select
-
-
 @
 
-<<beta2-plots, eval = FALSE>>=
+<<beta2-plots>>=
 beta2_df <- readRDS("generated-data/beta2_df.rds")
-beta2_plots <- plot_coverage_select(beta2_df, color = FALSE)
-beta2_plots_nosplit <- plot_coverage_select(beta2_df[beta2_df$split_prop < 0,])
-beta2_plots_split <- plot_coverage_select(beta2_df[beta2_df$split_prop >= 0,])
+beta2_plots_nosplit <- plot_coverage_select(beta2_df[beta2_df$split_prop < 0,],
+                                            color = FALSE)
+beta2_plots_split1 <- plot_coverage_select(beta2_df[beta2_df$split_prop == 0.5,],
+                                           color = FALSE)
+beta2_plots_split2 <- plot_coverage_select(beta2_df[beta2_df$split_prop == 0.8,],
+                                           color = FALSE)
+@
 
-beta2_plots_nosplit$plot_coverage +
-    geom_hline(yintercept = 0.95, color = "red") +
-    theme(axis.text.x=element_text(angle= 45, size = 10, hjust=1))
-beta2_plots_nosplit$plot_select +
-    theme(axis.text.x=element_text(angle=45, size = 10, hjust=1))
-
-beta2_plots_split$plot_coverage +
-    geom_hline(yintercept = 0.95, color = "red") +
-    theme(axis.text.x=element_text(angle= 45, size = 10, hjust=1))
-beta2_plots_split$plot_select +
-    theme(axis.text.x=element_text(angle=45, size = 10, hjust=1))
+<<eval = FALSE>>=
 
 @
 
 
-\section{Conclusion}
+\begin{figure}[htb]
+\centering
+<<beta1-coverage, fig.height = 8>>=
+plot_grid(beta1_plots_nosplit$plot_coverage +
+            ggtitle("Config 1: Coverage Probability, Naive Method"),
+          beta1_plots_split1$plot_coverage +
+            ggtitle("Config 1: Coverage Probability, p = 0.5"),
+          nrow = 2, labels = c("A", "B"))
+@
+\label{fig:beta1-coverage}
+\caption{blablabla}
+\end{figure}
 
-\appendix
+\begin{figure}[htb]
+\centering
+<<beta2-coverage, fig.height = 8>>=
 
-\section{Supplemental Figures}
+plot_grid(beta2_plots_nosplit$plot_coverage +
+            geom_hline(yintercept = 0.95, color = "red") +
+            ggtitle("Config 2: Coverage Probability, Naive Method") +
+            theme(axis.text.x=element_text(angle= 45, size = 10,
+                                           hjust=1)),
+          beta2_plots_split1$plot_coverage +
+            ggtitle("Config 2: Coverage Probability, p = 0.5") +
+            geom_hline(yintercept = 0.95, color = "red") +
+            theme(axis.text.x=element_text(angle= 45, size = 10,
+                                           hjust=1)),
+          nrow = 2, labels = c("A", "B"))
+@
+\label{fig:beta2-coverage}
+\caption{Beta2 coverage}
+\end{figure}
+
+
+\begin{figure}[htb]
+<<plot-select, fig.height = 8>>=
+
+plot_grid(beta1_plots_nosplit$plot_select +
+            ggtitle("Selection Probabilities, Configuration 1"),
+          beta2_plots_nosplit$plot_select +
+            ggtitle("Selection Probabilities, Configuration 2") +
+            theme(axis.text.x=element_text(angle=45, size = 10,
+                                           hjust=1)),
+          nrow = 2, labels = c("A", "B"))
+
+@
+\label{fig:beta-select}
+\caption{blabla}
+\end{figure}
+
+
+
+\section{Discussion}
+
+In my simulations, I showed that, for certain configurations of
+$\vect{\beta}$, performing model selection can result in confidence
+intervals that achieve less than the nominal coverage. For variables
+that are truly not significant, this could result in an inflated Type-I
+error rate of up to 30\%, if the variable is selected into the final
+model. Because the selection probabilities for these variables was
+around 25\%, there is a fairly large chance of this happening. One
+approach to achieve nominal coverage is to randomly split the data into
+a training and test set, select variables using the training set, and
+calculate the final estimates and standard errors using data from the
+test set. While inference is valid in this setting, splitting the data
+may not be desirable because of small data size and can lead to a loss
+of power.
+
+Overall, the use of automated variable selection techniques like
+\texttt{leaps} and stepwise selection should be cautioned, and the
+resulting inference may not be valid.
+
+\section{Future Work}
+
+I have written an R package to carry out the simulations in this
+project, and the code for producing this document and its figures can be
+found online at \url{https://github.com/shiandy/methods1proj}. This
+project can be extended to look at other simulation scenarios, such as
+different settings of $\vect{\beta}$, different correlation structure
+among the predictors, and errors that are not iid normal. Additionally,
+other variable selection techniques such as ridge regression, LASSO, and
+Bayesian techniques [CITATION] could be evaluated.
 
 % bibliography
 %\renewcommand*{\bibfont}{\footnotesize}
 %\setlength\bibitemsep{0pt}
+\clearpage
 
 \printbibliography
+
 
 \end{document}

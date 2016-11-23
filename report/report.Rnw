@@ -46,28 +46,12 @@
 \date{November 22, 2016}
 \maketitle
 
-<<setup, echo = FALSE>>=
-knitr::opts_chunk$set(echo = FALSE)
-@
-
-<<old, include = FALSE>>=
-coverages_df <- data.frame(coef_name = names(coverages),
-                           coverage = coverages)
-p_cover <- ggplot(data = coverages_df, aes(x = coef_name,
-                                           y = coverage)) +
-    geom_point() + ylim(min(0.949, min(coverages)), 1) +
-    geom_hline(yintercept = 0.95, color = "red") +
-    ggtitle("Coverage Probability") + xlab("Coefficient") +
-    ylab("Coverage Probability")
-#print(p_cover)
-
-selected_df <- sim_res %>% group_by(coef_name) %>%
-        summarize(pct_selected = n() / nreps)
-p_select <- ggplot(data = selected_df, aes(x = coef_name,
-                                    y = pct_selected)) +
-    geom_point() + ggtitle("Selection Probability") +
-    xlab("Coefficient") + ylab("Selection Probability")
-#print(p_select)
+<<setup, echo = FALSE, message = FALSE>>=
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE,
+                      fig.height = 6, fig.width = 8)
+library("ggplot2")
+library("cowplot")
+library("dplyr")
 @
 
 \abstract{Abstract here}
@@ -77,6 +61,63 @@ p_select <- ggplot(data = selected_df, aes(x = coef_name,
 \section{Methods}
 
 \section{Results}
+
+<<>>=
+
+plot_coverage_select <- function(df, color = TRUE) {
+    plot_coverage <- ggplot(data = df,
+                            aes(x = coef_name, y = coverage)) +
+        facet_grid(covar ~ n) +
+        geom_hline(yintercept = 0.95) +
+        ggtitle("Coverage Probabilities") + xlab("Coefficient") +
+        ylab("Coverage") +
+        background_grid(major = "xy", minor = "none")
+
+    plot_select <- ggplot(data = df,
+                          aes(x = coef_name, y = select_prob)) +
+        facet_grid(covar ~ n) +
+        ggtitle("Selection Probabilities") + xlab("Coefficient") +
+        ylab("Selection Probability") +
+        background_grid(major = "xy", minor = "none")
+
+    if (color) {
+        plot_coverage <- plot_coverage +
+            geom_boxplot(aes(color = select_method))
+        plot_select <- plot_select +
+            geom_boxplot(aes(color = select_method))
+    }
+    else {
+        plot_coverage <- plot_coverage + geom_boxplot()
+        plot_select <- plot_select + geom_boxplot()
+    }
+
+    ret <- list(plot_coverage = plot_coverage,
+                plot_select = plot_select)
+    return(ret)
+
+}
+
+beta1_df <- readRDS("generated-data/beta1_df.rds")
+beta1_plots <- plot_coverage_select(beta1_df)
+
+beta2_df <- readRDS("generated-data/beta2_df.rds")
+beta2_plots <- plot_coverage_select(beta2_df, color = FALSE)
+@
+
+<<>>=
+
+beta1_plots$plot_coverage
+beta1_plots$plot_select
+
+beta2_plots$plot_coverage +
+    geom_hline(yintercept = 0.95, color = "red") +
+    theme(axis.text.x=element_text(angle= 45, size = 10, hjust=1))
+
+beta2_plots$plot_select +
+    theme(axis.text.x=element_text(angle=45, size = 10, hjust=1))
+
+@
+
 
 \section{Conclusion}
 

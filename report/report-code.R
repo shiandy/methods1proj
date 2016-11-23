@@ -42,6 +42,7 @@ run_sim_parallel <- function(true_betas, sim_conditions, nreps = 10) {
                              select_method = rep(cur_select, p),
                              n = rep(cur_n, p),
                              covar = rep(cur_covar, p),
+                             split_prop = cur_split_prop,
                              coef_name = names(ret$coverages),
                              coverage = ret$coverages,
                              select_prob = ret$select_probs)
@@ -72,10 +73,10 @@ registerDoParallel(cl)
 
 start_time1 <- Sys.time()
 beta1_df <- run_sim_parallel(true_betas1, sim_conditions1, nreps)
-write.csv(beta1_df, "generated-data/beta1_df.csv")
-saveRDS(beta1_df, "generated-data/beta1_df.rds")
 elapsed1 <- Sys.time() - start_time1
 print(elapsed1)
+write.csv(beta1_df, "generated-data/beta1_df.csv")
+saveRDS(beta1_df, "generated-data/beta1_df.rds")
 
 # Harder case
 true_betas2 <- rep(0, 20)
@@ -95,9 +96,9 @@ print(nrow(sim_conditions2))
 
 start_time2 <- Sys.time()
 beta2_df <- run_sim_parallel(true_betas2, sim_conditions2, nreps)
-write.csv(beta2_df, "generated-data/beta2_df.csv")
-saveRDS(beta2_df, "generated-data/beta2_df.rds")
 elapsed2 <- Sys.time() - start_time2
 print(elapsed2)
+write.csv(beta2_df, "generated-data/beta2_df.csv")
+saveRDS(beta2_df, "generated-data/beta2_df.rds")
 
 stopCluster(cl)

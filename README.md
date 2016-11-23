@@ -27,6 +27,6 @@ https://dl.dropboxusercontent.com/u/84506071/report.pdf
 The text and code to run the report can be found in the `report`
 directory.
 
-# License
+## License
 
-This code is licenced under the MIT License. See [LICENSE.md](LICENSE.md) for more details.
+This code is licenced under the MIT License. See [LICENSE](LICENSE) for more details.

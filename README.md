@@ -27,6 +27,10 @@ https://dl.dropboxusercontent.com/u/84506071/report.pdf
 The text and code to run the report can be found in the `report`
 directory.
 
+A pdf copy of a presentation for this project can be found here:
+
+https://dl.dropboxusercontent.com/u/84506071/presentation.pdf
+
 ## License
 
 This code is licenced under the MIT License. See [LICENSE](LICENSE) for more details.

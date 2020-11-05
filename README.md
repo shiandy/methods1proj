@@ -22,14 +22,14 @@ If you'd like to test out the package, you can install it easily using
 ## Report
 A pdf copy of the report can be found here:
 
-https://dl.dropboxusercontent.com/u/84506071/report.pdf
+https://www.dropbox.com/s/pb2w2v1bpvkw7g2/report.pdf?dl=0
 
 The text and code to run the report can be found in the `report`
 directory.
 
 A pdf copy of a presentation for this project can be found here:
 
-https://dl.dropboxusercontent.com/u/84506071/presentation.pdf
+https://www.dropbox.com/s/43fek71u7gvzfe6/presentation.pdf?dl=0
 
 ## License
 
